@@ -1,0 +1,99 @@
+---
+title: "Revisiting the managerial impact of AI algorithmic fairness on business decisions: A replication of Cowgill et al. 2020"
+author: "Yingying Zhou"
+date: "08/04/2021"
+output:
+ bookdown::pdf_document2:
+ toc: no
+abstract: "This paper reproduces [@citepaper] to reinvestigate the managerial impact of algorithm fairness using a RCT field experiment under two business decision-making scenarios. This paper identifies demographic traits explaining the fundamental diversity in firm manager’s attitude towards AI and further examines the effect of interventions on AI adoption through activism arguments on algorithmic fairness. This paper finds that counterfactual advocacy arguments on algorithmic bias are more effective in promoting AI adoption for business use. Besides argument manipulations, race, gender, and knowledge on the status quo fundamentally impact manager’s judgement on AI adoption."
+  
+header-includes:
+ - \usepackage{float}
+ - \floatplacement{figure}{H}
+ - \floatplacement{table}{H}
+
+thanks: "Code and data are available at: https://github.com/StephaininZ/algorithm_fairness"
+bibliography: references.bib
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(haven)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(kableExtra)
+```
+
+# Introduction
+
+Artificial Intelligence algorithmic bias in business decision-making inflicts ethical consequences which mostly materialize to company image damage and revenue loss. While AI technology has expedited the decision-making process in business operations, liberating manual efforts and replacing rule-based models in the age of big data for firms, concerns have been aroused on AI adoption by business decision-makers. 
+
+[@citepaper] examines the managerial effects of argument intervention through two Randomized Controlled Trial field experiment series in two business cases on hiring and lending decisions via investigations on effect originating from opinion polarity and from scientific veneer. In the first study, [@citepaper] randomly assigns subjects to one of three op-ed conditions (fatalistic, counterfactual or no op-ed) to assess participant’s adoption decisions and relationship of the argument to the status quo. In the second study, [@citepaper] measures the impact of adding scientific authority to arguments on AI ethics using a $2\times 2$ factor design.
+
+[@citepaper] finds that fatalism op-ed discourages AI adoption, while the counterfactual encourages it. As for the belief on the fixability of the algorithmic bias, participants tend to have more faith in correcting the fairness problems under fatalistic op-ed conditions. On the other hand, scientific veneer on arguments would reinforce the persuasive effect of the viewpoint on an approximately equal scale for either direction (positive or negative) and thus affect manager’s decision to adopt AI. 
+
+Using the replication dataset and code provided by the original authors, I re-implement the first study to further the managerial impact of activism arguments through the working channel of opinion polarity in altering business decision-maker’s perception and adoption decision on AI. This paper identifies the heterogenous effects from individual demographic characteristics of on their consistent choice set of attitudes towards AI adoption (excluding treatment effects) via a multiple linear regression. Subsequently, it analyses the marginal effect of exerting engineering effort on the belief of AI bias fixability through a panel OLS regression with individual fixed effects. 
+
+My findings about the managerial effects by argument polarity are consistent with [@citepaper] that arguments stressing the inevitability of algorithmic bias lead managers to abandon AI and op-eds claiming the superiority of AI models relative to human in producing lower bias would encourage AI adoption. In addition, the counterfactual op-ed precondition would sway manager’s belief in being able to improve AI bias after the engineering effort (fixability outcomes). For the ordinary linear regression inference about demographic traits and status quo condition, this paper discovers that algorithm models are significantly less favored by female, African Americans, and politically liberal managers compared to other genders, race and political affiliations throughout the study. 
+
+Artificial Intelligence technology has a promising prospect in accelerating business decision-making process by delegating data-heavy insight mining and predicting optimal business plans provided that its ethical fairness problem can be mitigated in the future. Once the algorithmic bias can be addressed, AI would be one of the workhorses in the era of big data, especially from the perspective of business operations. Therefore, algorithmic fairness activism should promote the adoption of AI, allow some time for technology refinement despite its current defect in ethical bias. This paper builds on these incentives to investigate which activism intervention influences manager’s adoption decision on the AI technology.
+
+The remainder of the paper is constructed as follows. Section 2 describes the dataset, experiment design, and exploratory data analysis on feature visualization. Section 3 outlines the reproduced experiment models, which is designed to discover relationships between features and the target variable. Section 4 summarizes the model results according to evaluation criteria. Finally, Section 5 discusses our research findings and provides directions for future research.
+
+R statistical programming language [@citeR] is used to replicate the experiment. To be specific, `tidyvers` package is for data preprocessing [@citetidyverse], `kableExtra` package is applied to generate tables [@citekableExtra],  `ggplot2` is used to draw diagrams [@gg1], `ggthemes` is for diagram theme changing [@citeggthemes].
+
+# Data
+
+## Dataset features
+
+Subjects demographic traits (table)
+
+## Experiment in the paper
+
+sampling, methodology, intervention, experiment flow chart (enclosed in appendix, to be redrawn later)
+
+## Descriptive analysis
+
+# Model
+
+## Multiple linear regression with interaction terms
+
+# Results
+
+# Discussion
+
+## Bias and ethical concerns 
+
+## Model results
+
+## Real world implications
+
+## Internal validity & external validity of model
+
+## Weakness and opportunities for future work
+
+## Differences and difficulties
+
+
+\newpage
+\appendix
+
+# Appendix
+
+```{r page1, echo=FALSE, fig.cap="Draft of the overall experiment flows", fig.align="center"}
+library(here)
+knitr::include_graphics(here::here("outputs/image/experimentflow.png"))
+```
+
+
+\newpage
+
+
+# References
+
+
+
+
