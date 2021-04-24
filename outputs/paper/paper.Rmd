@@ -1,7 +1,7 @@
 ---
 title: "Revisiting the managerial impact of AI algorithmic fairness on business decisions: A replication of Cowgill et al. 2020"
 author: "Yingying Zhou"
-date: "08/04/2021"
+date: "23/04/2021"
 output:
  bookdown::pdf_document2:
  toc: no
@@ -21,10 +21,18 @@ bibliography: references.bib
 knitr::opts_chunk$set(echo = TRUE)
 
 library(haven)
+library(here)
 library(tidyverse)
+library(dplyr)
 library(ggplot2)
 library(ggthemes)
-library(kableExtra)
+library(kableExtra)  
+library(ExPanDaR)   # panel data EDA
+
+library(lfe)  # multiple group fixed effect linear regression
+library(data.table)
+library(tibble)
+library(modelsummary)
 ```
 
 # Introduction
@@ -35,7 +43,7 @@ Artificial Intelligence algorithmic bias in business decision-making inflicts et
 
 @citepaper finds that fatalism op-ed discourages AI adoption, while the counterfactual encourages it. As for the belief on the fixability of the algorithmic bias, participants tend to have more faith in correcting the fairness problems under fatalistic op-ed conditions. On the other hand, scientific veneer on arguments would reinforce the persuasive effect of the viewpoint on an approximately equal scale for either direction (positive or negative) and thus affect manager’s decision to adopt AI. 
 
-Using the replication dataset and code provided by the original authors, I re-implement the first study to further the managerial impact of activism arguments through the working channel of opinion polarity in altering business decision-maker’s perception and adoption decision on AI. This paper identifies the heterogenous effects from individual demographic characteristics of on their consistent choice set of attitudes towards AI adoption (excluding treatment effects) via a multiple linear regression. Subsequently, it analyses the marginal effect of exerting engineering effort on the belief of AI bias fixability through a panel OLS regression with individual fixed effects. 
+Using the replication dataset and code provided by the original authors, I re-implement the first study to further the managerial impact of activism arguments through the working channel of opinion polarity in altering business decision-maker’s perception and adoption decision on AI. This paper identifies the heterogenous effects from individual demographic characteristics on their consistent choice set of attitudes towards AI adoption (excluding treatment effects) via a multiple linear regression. Subsequently, it analyses the marginal effect of exerting engineering effort on the belief of AI bias fixability through a panel OLS regression with individual fixed effects. 
 
 My findings about the managerial effects by argument polarity are consistent with @citepaper that arguments stressing the inevitability of algorithmic bias lead managers to abandon AI and op-eds claiming the superiority of AI models relative to human in producing lower bias would encourage AI adoption. In addition, the counterfactual op-ed precondition would sway manager’s belief in being able to improve AI bias after the engineering effort (fixability outcomes). For the ordinary linear regression inference about demographic traits and status quo condition, this paper discovers that algorithm models are significantly less favored by female, African Americans, and politically liberal managers compared to other genders, race and political affiliations throughout the study. 
 
@@ -43,53 +51,485 @@ Artificial Intelligence technology has a promising prospect in accelerating busi
 
 The remainder of the paper is constructed as follows. Section 2 describes the dataset, experiment design, and exploratory data analysis on feature visualization. Section 3 outlines the reproduced experiment models, which is designed to discover relationships between features and the target variable. Section 4 summarizes the model results according to evaluation criteria. Finally, Section 5 discusses our research findings and provides directions for future research.
 
-R statistical programming language [@citeR] is used to replicate the experiment. To be specific, `tidyvers` package is for data preprocessing [@citetidyverse], `kableExtra` package is applied to generate tables [@citekableExtra],  `ggplot2` is used to draw diagrams [@gg1], `ggthemes` is for diagram theme changing [@citeggthemes].
+R statistical programming language [@citeR] is used to replicate the experiment. To be specific, `tidyvers` package is for data preprocessing [@citetidyverse], `kableExtra` package is applied to generate tables [@citekableExtra],  `ggplot2` is used to draw diagrams [@gg1], `ggthemes` is for diagram theme changing [@citeggthemes], and `lfe` is used to conduct panel linear regression with fixed effects [@citelfe].
 
 # Data
 
 ## Dataset features
+The paper intends to replicate the experiment report for Study 1 by @citepaper using the survey data provided. The panel dataset (op-ed) records 498 subject observations with 50 variables for two business cases, including demographic information about the subject (i.e. dummy for gender ^[male, female, and other gender], race ^[white, black, asian, hispanic, and other ethnicity]), education ^[eduprepared: whether feel educationally prepared for these decisions], and AI-related experience ^[workdeicisions: whether make AI-related decisions on their jobs; knowsml: whether knows machine learning], indicator variables flagging experiment treatments ^[op-ed treatment: cf (counterfactual), fat (fatalistic); status quo condition: sqshw (shown), sqopt (optional), sqhid (hidden)], and five survey answers at different experiment stages ^[pre or post "algorithm fix" condition; first or second business case] in numeric scale. 
 
-Subjects demographic traits (table)
 
-## Experiment in the paper
+```{r read_data, include=FALSE}
+# read the raw datasets for study 1 and study 2
+oped <- haven::read_stata(here::here("inputs/data/oped-desc.dta"))
+veneer <- haven::read_stata(here::here("inputs/data/veneer-desc.dta"))
+```
 
-sampling, methodology, intervention, experiment flow chart (enclosed in appendix, to be redrawn later)
 
-## Descriptive analysis
+```{r colnames, tab.cap="Variable names for raw data", echo=FALSE}
+oped %>%
+  select(-c(dataset, response_id)) %>% colnames()%>% 
+  matrix(nrow=10, byrow=TRUE) %>%
+  kableExtra::kbl(caption = "Variable names for raw data ") %>%
+  kableExtra::kable_styling(latex_options = "scale_down")%>% 
+  kableExtra::kable_styling(latex_options = c("hold_position"))
+```
+The dependent variables of interest listed below are answers to five adoption-related survey questions given by subjects at different stages during the experiment, which proxy respondent’s adoption decisions. 
+
+*	`posneg`: Positive impact level the subject considers AI adoption (1-6)
+*	`recscale`: Recommendation scale on AI adoption (1-7)
+*	`recyesno`: Whether recommend adopting AI technology (0 or 1)
+*	`lawsuitspr`: How likely are AI lawsuits or PR problems (1-7)
+*	`damaging`: Magnitude of damage by AI bias (1-7)
+
+The following graphs explore some preliminary relationships between the participant demographic traits and their response to AI adoption in business decision-making experiments.
+
+```{r jitterraw, fig.cap = "Different Perception of AI bias damage size by Gender", echo=FALSE, fig.width=8, fig.height=4}
+ggplot(oped, aes(x=female, y=damaging_pre_first, color=factor(female))) +
+  geom_point(position="jitter", alpha=0.5) +
+  labs(title="Different Perception of AI bias damage size by Gender", x="Whether female", y="Magnitude of AI lawsuits or PR problem")+
+  theme_light()+
+  scale_color_manual(name="Whether female", values=c("#8FCDD4", "#DB7558")) +
+  theme(legend.position="bottom")
+```
+
+**Gender vs. Damage size**: We can see that female holds a more negative presumption on the damage size caused by AI bias; most responses concentrate around the more severe level around 6 to 7 and none of them rate the damage at its lowest level of 1. 
+
+```{r barworkdecision, fig.cap="Distrbution of initial attitude towards AI adoption by AI experience", echo=FALSE, fig.width=8, fig.height=4}
+ggplot(oped, aes(x = factor(recyesno_pre_first), fill=factor(workdecisions))) + 
+  geom_bar(position="dodge", width=0.5) + 
+  scale_fill_manual(name="Whether make AI decisions",values=c("#FFCF57", "#ACD8CB")) +
+  labs(title="Distrbution of initial attitude towards AI adoption", x="Whether recommend AI adoption", y="Count") +
+  theme_minimal() +
+  theme(legend.position="bottom")
+```
+
+**AI experience vs. whether recommend AI adoption**: For managers with experience in making AI-related decisions, they tend to favor AI adoption more than their peers with no relevant AI experience. 
+
+
+
+```{r include=FALSE}
+# transform data to format for plotting a stacked bar chart
+gend_race <- oped %>% 
+  select(posneg_pre_first, male, female, othergend,white,black,asian,otherethn) %>% 
+  rename("Male"="male",
+         "Female"="female",
+         "Other Gender"="othergend",
+         "White"="white",
+         "Black"="black",
+         "Asian"="asian",
+         "Other Ethnicity"="otherethn",
+         "Initial_Attitude_towards_AI"="posneg_pre_first")
+
+gend_race[-1] <- lapply(seq_along(gend_race)[-1], function(x) ifelse(gend_race[[x]] == 1, names(gend_race)[x], gend_race[[x]]))
+
+gend_race[gend_race==0] <- NA
+gend_race[is.na(gend_race)] = ''
+gend_race <- unite(gend_race, gender, 2:4, sep='')
+gend_race <- unite(gend_race, race, 3:6, sep='')
+
+race_count <- gend_race %>% count(Initial_Attitude_towards_AI, race)
+race_count <- group_by(race_count, race) %>% mutate(percent=n/sum(n))
+```
+
+
+
+```{r stackedbar, fig.cap = "Heterogenous initial polarity attitude towards AI Adoption by Racer", echo=FALSE, fig.width=8, fig.height=4}
+g2 = ggplot()+
+  geom_bar(data = race_count, aes(x = reorder(race,percent), y=percent, fill=factor(Initial_Attitude_towards_AI)), position="stack", stat="identity")+
+  coord_flip() + 
+  ggtitle("Heterogenous initial polarity attitude towards AI Adoption by Race")+
+  ylab("Percentage")+
+  xlab("Race")+
+  scale_fill_brewer(palette="GnBu", name="How positively subjects consider AI impact")+
+  theme_light()+
+  theme(legend.position="bottom")
+g2
+```
+
+**Race vs. positive opinion on AI impact**: People of different race have dissimilar opinions on AI impact. Besides other ethnicity, black people are the most pessimistic (1 to 2) towards AI impact, while white people are the most optimistic (5 to 6), followed by Asians, where most of them hold a positive vision on AI impact. 
+
+
+
+```{r dataframes, include=FALSE}
+# prepare dataframe for making demographic summary table for Study 1,2
+demog1 <- oped %>% 
+  select(male, female, othergend, hispanic,white,black,asian,otherethn,workdecisions,eduprepared,knowsml) %>%
+  rename("Male"="male",
+         "Female"="female",
+         "Other Gender"="othergend",
+         "Latinx"="hispanic",
+         "White"="white",
+         "Black"="black",
+         "Asian"="asian",
+         "Other Ethnicity"="otherethn",
+         "AI Decisions"="workdecisions",
+         "Prepared by Educ."="eduprepared",
+         "Knows ML"="knowsml")
+demog2 <- veneer %>% 
+  select(male, female, othergend, hispanic,white,black,asian,otherethn,workdecisions,eduprepared,knowsml) %>%
+  rename("Male"="male",
+         "Female"="female",
+         "Other Gender"="othergend",
+         "Latinx"="hispanic",
+         "White"="white",
+         "Black"="black",
+         "Asian"="asian",
+         "Other Ethnicity"="otherethn",
+         "AI Decisions"="workdecisions",
+         "Prepared by Educ."="eduprepared",
+         "Knows ML"="knowsml")
+```
+
+```{r prop_func, include=FALSE}
+# function to calculate proportion
+descStats <- function(x){
+  prop = round(sum(x)/nrow(demog1), digits=2)
+  return(prop)
+}
+```
+
+## Population, frame, and sampling
+The survey was conducted in January 2020, U.S. using the online participant recruitment platform called Prolific Academic. Target population is U.S. adults with management experience. Table \@ref(tab:demogtable)^[ Table \@ref(tab:demogtable) uses the "dplyr" package @citedplyr for data cleaning] lists the detailed sample demographic statistics for gender, race, education and AI related experience traits in frequency. Apart from an equal selection in gender categories of male versus female, the majority race group is white, with latinx, black, Asian, and other ethnicity being the minority race groups, which resembles the population distribution characteristics in the U.S. Although @citepaper did not state their sampling methods in the paper, based on the selected subject distributions in demographics, it is probable that stratified random sampling (@citerandsamp) is used in participant recruitment to arrive at this representative subset of U.S. population. Half of the participants make AI-related decisions on their jobs. Around half of them know machine learning, and most of them feel educationally prepared for these decisions. 
+There is no missing data in the dataset; respondents have answered every question encountered in the survey, i.e., non-response problem is non-existent in this study.   
+
+## Experiment, methodology & intervention
+For Study 1, @citepaper designed two business cases on recruiting or financial lending where subjects need to complete sequentially, with the same set of five AI adoption-related questions ^[see [Appendix](#Appendix)] to answer in each scenario. Each case puts the subject in the role of a manager making an AI adoption decision. After reading the case and before answering questions, subjects are randomized to receive **status quo** information on AI algorithmic imbalance levels (status quo shown, optional view, none). After these five questions, subsequently, the subject is informed with a new condition, **algorithm engineering fix**,  ^[The subject is told to imagine the company has dedicated 6 months of additional engineering effort to fix AI bias at the end of the case.]. They are then asked to re-answer the five questions, incorporating beliefs about the algorithm fixability given the sequential scenario of a six-month engineering effort to correct AI bias. 
+
+The **op-ed** treatment is placed in the second business case; subjects will be randomized to read an additional op-ed after viewing the case before receiving a randomized status quo information. The op-ed is manipulated to be a persuasive argument about algorithmic fairness randomized to be **“counterfactual”** ^[A pro-AI view stressing the usefulness of AI once its bias is reduced below the level of "counterfactual" human decision-making], **“fatalistic”** ^[An anti-AI perspective claiming that bias of AI cannot be fully cleansed and thus should be avoided], or no op-ed. Details about experiment flow design is in [Appendix A](# Appendix).
+
+```{r demogtable, echo=FALSE}
+demog_oped <- data.frame(unlist(lapply(demog1, descStats)))
+demog_veneer <- data.frame(unlist(lapply(demog2, descStats)))
+demog_stats <- cbind(demog_oped, demog_veneer)
+demog_stats %>% 
+  kableExtra::kbl(col.names =c("Study 1: Op-Ed","Study 2: Veneer"), caption="Descriptive Statistics: Subject Demographics") %>%
+  kableExtra::kable_styling(latex_options = c("hold_position"))
+```
+
+
+```{r read_clean, include=FALSE}
+# load the cleaned dataset
+clean_df <- read.csv(here::here("inputs/data/clean_df.csv"))
+```
+
+## Data structure transformation and data preprocessing
+The two sequential business case studies along with repeated process in question-answering make the observations to be in the format of longitudinal panel data, with time periods ^[pre_first, post_first, pre_second, post_second] to be `pre-` algorithm fix condition in the `first` case, `post-` algorithm fix condition in the `first` case, `pre-` algorithm fix condition in the `second` case, and `post-` algorithm fix condition in the `second` case. For the ease of further panel data regression analysis, the raw dataframe is reshaped into a long format, expanding the time dimension of four experiment stages for each subject. 
+
+In addition, the five dependent variables are standardized to be of Normal (0,1) distribution to unify the measurement scale for the ease of comparison in the regression results across five models. Interaction terms between sequential treatments are generated. The final cleaned dataset has 1,992 rows with 48 columns. 
+
+A change in participant’s decision responses towards AI adoption over the experiment can be visualized below in the trend plot (Figure \@ref(fig:trendplot). We can see that on average, subjects perceive the AI adoption as more positive and less damaging after each algorithm engineering fix condition (pre vs. post), and their baseline preconceived idea on AI (pre_first vs. pre_second) seem to improve as well. 
+
+```{r trendplot, fig.cap="Change of attitude towards AI Adoption over experiment", echo=FALSE, fig.width=8, fig.height=4}
+#install.packages("ExPanDaR")
+library(ExPanDaR)
+graph <- prepare_trend_graph(clean_df[c("posneg","first_str", "recscale", "lawsuitspr", "damaging")], "first_str")
+p <- graph$plot
+p+ theme_light() +
+  scale_color_manual(name="AI Adoption Decision", values=c("#F6A6B6","#FFCF57","#3E737D","#8FCDD4")) +
+  labs(title="Change of attitude towards AI Adoption over experiment", x="Experiment period", y="AI acceptance / disapproval level") +
+  scale_x_discrete(limits = c("_pre_first", "_post_first", "_pre_second","_post_second"))+
+  theme(legend.position="bottom")
+
+```
+
+
+
 
 # Model
+@citepaper used a multiple panel linear regression with fixed effects to examine the effects of activism treatment conditions on manager’s AI adoption decisions through the channel of belief about algorithm fixability and persuasive arguments about AI fairness. The fixed effect absorbs all the individual-level response difference due to heterogeneity in individual characteristics. Based on Cowgill’s model, a supplementary multiple linear regression is conducted by this paper to further investigate the impact of endogenous individual demographics heterogeneity on manager’s decisions, which was masked by fixed effects in the previous model. 
+
+To measure subject’s decision on AI adoption from the aspects of recommendation and perceived damage separate regressions are run on 
+
+* `Positive`: how positive do they consider AI algorithm
+* `Rec(Y/N)`: whether they recommend AI adoption
+* `Rec(Scale)`: recommendation scale
+* `Lawsuit`: how likely is the occurrence of lawsuits and PR problems
+* `Damage Size`: the damage size due to AI bias conditional on it ever happening
+
+Positive coefficients imply a positive effect on decision response for the first three dependent variable, and the opposite relationship holds for the last two Y variables.
+
+## Panel linear regression with individual Fixed Effect & Clustered SE
+
+I replicate the STATA panel linear regression model which uses areg to absorb multi-level categorical factors with the `felm` linear model in the `lfe` package in RStudio. 
+Due to the sequential and repeated procedure nature of the experiment, the survey data is collected over the dimensions of same individuals $i$ (cross-sectional) and over time $t$ (longitudinal). Therefore, the observed change in response variable might result from treatment effects after controlling for time or caused by heterogeneity in attributes across individuals but is time t invariant. Such entity difference might come from gender, race, education, and work experience and thus should be captured as individual fixed effect as $FE_i$ in the regression model [@citelfe]. It justifies the original author’s rationale for using panel regression with fixed effects.  
+
+In contrast to the homoskedasticity assumption for linear regression, chances are that the variance of residuals for panel data are not constant for all data points due to autocorrelations across time within each individual and their dissimilar attributes. To account for heteroskedasticity, clustered robust standard errors are used instead of standard errors to get the unbiased standard errors of regression coefficients and to obtain correct p-value for statistical inference [@citeclusterse]. 
+
+The equation for the panel regression model is shown below:
+$$ Y_{i,t,fix}=\beta[1(t=1)+1(fix=1)+Hiring+FE_i+CF_{i,t}+FAT_{i.t}+$$
+$$CF_{i,t}\times1(fix=1)+FAT_{i,t}\times1(fix=1)]+\epsilon$$
+The treatment variables of `engineering fix on the algorithm` ($fix$) condition and the `counterfactual` ($CF$) or `fatalistic` ($FAT$) op-ed condition and their interaction terms are included in the model 1 panel regression. The order of the business case $t$ and its content ($hiring$ or lending) are included as control variables.
+
 
 ## Multiple linear regression with interaction terms
 
+The equation for the multiple linear regression is specified as follows:
+$$ Y_{i,t,fix}=\beta[1(t=1)+1(fix=1)+Hiring+SqShown_{i,t}+SqOpt_{i,t}+SqShown_{i,t}\times1(fix=1)+$$
+$$ SqOpt_{i,t}\times1(fix=1)+SqSeen_{i,t}\times1(t=1)+Female+Black+Asian+Hispanic+OtherEthn+$$
+$$PoliticConsrv+AIDecision+EducPrepared+KnowsML]+\epsilon$$
+
+The individual-level fixed effect in the first panel regression model absorbs the time t-invariant effects such as individual attributes (i.e. gender, race, education, work experience, etc.) and the randomized status quo viewing conditions. The status quo conditions are irrelevant with case t ($t\in{\{1,2}\}$) since they are present in both cases and the randomization make the two conditions independent from each other. 
+
+To study the effects generated by individual attributes and status quo conditions within the fixed effect, the factors of interest are included in this supplementary multiple linear regression as my second model. 
+
+To study within the individual subject heterogeneity, demographic information of gender, race, education, and political conservatism and AI- related experiences in work and knowledge are specified as regressors on subject’s response to the survey question. In addition to the treatment variable of `algorithm fix`, the randomized status quo conditions and their interaction terms with the treatment are included to serve as control variables.  
+
+To account for the subject heterogeneity and its resulting heteroskedasticity of regression errors, standard errors are clustered by subject `response id` for accurate standard errors. Accurate standard errors would in turn deliver unbiased p-values for regression coefficients which are a critical basis for statistical inference on the variable significance. 
+
+
+
 # Results
+
+## Model 1: Effects of "Counterfactual" and "Fatalism" Activism
+
+As shown in the summary table, Table \@ref(tab:fmclu)^[The 'modelsummary' package @citemodelsummary is applied to create the table.], for panel linear regression, the model goodness of fit is rather high, at R-squared between 0.6 to 0.7. The constructed model can explain 60 ~ 70% of the variations in subject’s response on AI adoption decisions. 
+
+Reading the counterfactual op-ed leaves the managers with a more positive impression on the algorithm and encourages the adoption of AI. It increases the perceived positive impact of the technology by 0.24 standard deviations and significantly increases recommendation by 0.14 standard deviations. The opposite effect is observed when managers read the fatalistic op-ed. Managers deduct marks on their impression towards AI by 0.17 standard deviations and discourages adoption significantly (-0.28). Furthermore, their pessimistic vision on AI bias leads them to worry more about the likelihood of lawsuits and PR problems (+0.19). The control group for op-ed treatment is having no op-ed. 
+
+As for the algorithm `fix` treatment, it can significantly improve people’s attitude on their perceived algorithm positivity (+0.37), scale of recommendation (+0.27), and damage incidents (-0.6) and size (-0.28), but with limited efficacy on altering people’s binary decision choice of yes or no (0.02, p-value insignificant). 
+
+When we consider the joint treatment effects from algorithm fix and op-ed, it is observed that the counterfactual op-ed significantly deters managers from recommending the adoption (-0.28) but deepen their concern on the damage incidents (0.16), compared to the no op-ed situation. This may partly be the result of having set initial expectations relatively high in the counterfactual condition. The effects of the fatalism op-ed about algorithm fix are mixed; subjects are holding ambivalent attitudes towards technology perceived positivity and recommend scale, and only the impact on perceived damage incident seems significant but insubstantial (+0.1). It is probably because that the vision promised by the engineering effort to fix AI bias and the AI fatalism viewpoint are contradicting themselves, which causes confusion for the readers and thus affect their decision-making inconsistently.
+
+Note that although my replication panel regression model delivers the same regression coefficients as the original paper, there are some disparities in the magnitude of the clustered standard errors. The standard errors from my replication are slightly smaller (by around 0.005), as a result, the detected significance level is slightly biased upwards, but no material effect on the threshold of 5%. It turns out the STATA uses a different clustering technique from R, called finite sample correction [@citestackexc]. 
+
+```{r include=FALSE}
+#install.packages("lfe")
+# MODEL 1: build 5 panel linear regression models for 5 different Y
+
+library(lfe)
+fmodels <- list()
+fmodels[["Positive"]] <- felm(posneg_std~ hiring+sqseen_first+first+pos+cf+fat+cf_pos+fat_pos|response_id|0|response_id, data=clean_df)
+fmodels[["Rec(Scale)"]] <- felm(recscale_std~ hiring+sqseen_first+first+pos+cf+fat+cf_pos+fat_pos|response_id|0|response_id, data=clean_df)
+fmodels[["Rec(Y/N)"]] <- felm(recyesno_std~ hiring+sqseen_first+first+pos+cf+fat+cf_pos+fat_pos|response_id|0|response_id, data=clean_df)
+fmodels[["Lawsuit"]] <- felm(lawsuitspr_std~ hiring+sqseen_first+first+pos+cf+fat+cf_pos+fat_pos|response_id|0|response_id, data=clean_df)
+fmodels[["Damage Size"]] <- felm(damaging_std~ hiring+sqseen_first+first+pos+cf+fat+cf_pos+fat_pos|response_id|0|response_id, data=clean_df)
+```
+
+
+```{r fmclu, warning=FALSE, echo=FALSE}
+# make summary table for Model 1 regression results
+
+cmf <- c("hiring"="Hiring",
+        "pos"="Algorithm Fix",
+        "cf"="Counterfactual Op-ed",
+        "fat"="AI Fatalism Op-ed",
+        "cf_pos"="Fix x Counterfactual",
+        "fat_pos"="Fix x AI Fatalism")
+row1 <- transpose(as.data.frame(list(c('Fixed Effects', 'Subject', 'Subject', 'Subject', 'Subject', 'Subject'))))
+fm_clu <- msummary(fmodels, vcov="stata", output = "default", title="Effects of Activism: Study 1 (“Counterfactual” and “Fatalism” Activism)", coef_map=cmf, stars=TRUE, add_rows = row1, add_rows_location=0, gof_omit="R2 Adj.")
+
+fm_clu%>%
+  kableExtra::kable_styling(bootstrap_options = "basic",
+                            latex_options = "HOLD_position",
+                            table.envir = "table",
+                            font_size = 7
+                           )
+```
+
+
+## Model 2: Effects of Demographics and Status Quo Conditions
+
+Consistent patterns can be observed for people in demographic subgroups under different status quo and algorithm fix conditions in Table \@ref(tab:olsclu). The linear regression model using demographics traits, status quo and algorithm fix as regressors can explain about 10% of the variations in subject’s response. 
+
+Subjects who have viewed the status quo about AI fairness (either by being shown or choosing to click on the “view” option) assess the algorithm more favorably in their response to the five questions on a 5% significance level. Managers with AI work experience or someone who feel educationally-prepared for these decisions also hold an approving opinion. On the other hand, women, African Americans, and politically liberal managers tend to avoid this idea of AI adoption. 
+
+In addition, significant evidence has been found that engineering effort to fix the algorithm can brighten up people’s belief on the algorithm bias fixability. A six-month focused engineering effort can effectively increase manager’s evaluation on algorithm positivity and recommendation scale by 0.47 and 0.45 standard deviations. It also eases their concern on lawsuits and damage size by 0.7 and 0.34 standard deviations respectively.
+
+
+```{r include=FALSE}
+#install.packages("modelsummary")
+# MODEL 2: build 5 OLS linear regression models for 5 different Y
+
+library(modelsummary)
+models <- list()
+models[["Positive"]] <- lm(posneg_std ~ hiring+first+sqseen_first+pos+sqshw+sqopt+sqshw_pos+sqopt_pos+female+black+asian+hispanic+otherethn+consrv_std+workdecisions+eduprepared+knowsml, data=clean_df)
+
+models[["Rec(Scale)"]] <- lm(recscale_std ~ hiring+first+sqseen_first+pos+sqshw+sqopt+sqshw_pos+sqopt_pos+female+black+asian+hispanic+otherethn+consrv_std+workdecisions+eduprepared+knowsml, data=clean_df)
+
+models[["Rec(Y/N)"]] <- lm(recyesno_std ~ hiring+first+sqseen_first+pos+sqshw+sqopt+sqshw_pos+sqopt_pos+female+black+asian+hispanic+otherethn+consrv_std+workdecisions+eduprepared+knowsml, data=clean_df)
+
+models[["Lawsuit"]] <- lm(lawsuitspr_std ~ hiring+first+sqseen_first+pos+sqshw+sqopt+sqshw_pos+sqopt_pos+female+black+asian+hispanic+otherethn+consrv_std+workdecisions+eduprepared+knowsml, data=clean_df)
+
+models[["Damage Size"]] <- lm(damaging_std ~ hiring+first+sqseen_first+pos+sqshw+sqopt+sqshw_pos+sqopt_pos+female+black+asian+hispanic+otherethn+consrv_std+workdecisions+eduprepared+knowsml, data=clean_df)
+
+```
+
+
+```{r olsclu, warning=FALSE, echo=FALSE}
+# make summary table for Model 2 regression results
+
+cm <- c("pos"="Algorithm Fix",
+        "sqshw"="Status Quo Shown",
+        "sqopt"="Status Quo Shown (only if clicked)",
+        "sqshw_pos"="Fix x Status Quo Shown",
+        "sqopt_pos"="Fix x Status Quo Shown (only if clicked)",
+        "female"="Female",
+        "black"="Black",
+        "asian"="Asian",
+        "otherethn"="Other Ethnicity",
+        "consrv_std"="Political Conservatism (Standardized)",
+        "workdecisions"="AI Decisions",
+        "eduprepared"="Prepared by Educ.",
+        "knowsml"="Knows ML")
+ms <- msummary(models, output = "default", vcov=~response_id, statistic = 'std.error', title="Status Quo Conditions and Demographics: Study 1 (“Counterfactual” and “Fatalism” Activism)", coef_map=cm, stars=TRUE, gof_omit = "R2 Adj.|AIC|BIC|Log.Lik.|F")
+
+ms%>%
+  kableExtra::kable_styling(bootstrap_options = "basic",
+                            latex_options = "HOLD_position",
+                            table.envir = "table",
+                            font_size = 7 
+                           )
+```
+
+
 
 # Discussion
 
+The industries have benefitted from the development of Artificial Intelligence technology in liberating manual efforts, replacing rule-based models, and facilitating the decision-making process in business operations, meanwhile they also live under the fear of lawsuits and negative PR inflicted by algorithmic bias. The purpose of the research is to educate the business decision-maker of the future workhorse in the big data era and consequently to promote the business adoption in AI technology. 
+
+This paper replicates the first experiment of @citepaper to further study the managerial impact of AI fairness activism through the channel of its belief manipulation on impression on technology impact and manager’s perception on algorithm fairness fixability. The heterogeneity in adoption response by subject traits is examined with a multiple linear regression as a supplementary model to identify subgroup heterogeneity within the panel fixed effects. 
+
+
 ## Bias and ethical concerns 
+
+Despite the fact that @citepaper paper centers around the topic of AI algorithmic fairness, there are still some potential ethical biases in its experimental design. 
+
+### Imbalanced sampling proportion of race 
+The random stratified sampling method replicates the real U.S. demographic distribution on the sample distribution for the recruited subjects, it also introduces data imbalance. Data imbalance happens when the number of observations per class is not equally distributed; often one class, the majority group, has a large amount of data while one or more other classes (minority groups) have much fewer observations.
+
+As shown in Table \@ref(tab:demogtable), the majority in race group are white (81%), leaving black, Asian, and Hispanic to be the minority groups; each taking up around 5% of the population by race. 
+Data imbalance is a less explored problem in statistical regressions than in the domain of machine learning classification. Many statistical models simplify under the assumption of balanced data such as ANOVA, which is closely related to experimental design [@citeimbalance].
+
+In regression, the problem with imbalanced data is that essentially the sample size for the minority group is much smaller than the number of subjects in the experiment. The data points in the small sample and the observed behavior pattens might not be representative enough for the whole minority race group, which would cause bias in regression coefficients and statistical inference. 
+
+### Additional demographic factors to consider 
+
+Besides gender, race, political conservatism, and education, other factors that also can proxy people’s acceptance level on new technology are age and industry working for. Age for the working class embodies their years of working experience and seniority of employment (junior, senior, about to retire), which can indicate people’s willingness to be exposed to and learn about new things. Eventually, their learning attitude plays a role in shaping people’s belief and altering decision-making process. 
+
+For the specific topic of Artificial Intelligence, depending on the sectors being applied to, AI brings different scales of working efficiency increase and varying risk implications. According to @citeindustry, AI is most applied in the industries of healthcare, education, marketing, retail and E-commerce, and financial services. Managers from different industries might bring their implicit context into the business case setting. To account for these omitted factors, age and working industry information should be collected and added to the model. 
+
+
 
 ## Model results
 
+### Effects of “Counterfactual” and “Fatalism” Activism
+
+Based on model 1 regression results, the counterfactual arguments on AI fairness significantly encourages AI adoption, especially through promoting the binary recommendation, by 0.14 standard deviation. The fatalistic op-ed dispels people’s consideration in adopting the technology by persuading them with the increased likelihood of lawsuits and PR problems.  
+
+### Heterogeneity managerial effects from demographic differences
+
+As for the multiple OLS regression on subject’s response towards AI adoption, heterogenous effects in managers from different demographic groups are observed. All else held constant, on average, female managers view AI impact as less positive; furthermore, they are less likely to recommend AI adoption as they would picture a much larger damage (+0.29) caused by AI bias. Similar but less extreme behaviors (in terms of coefficient magnitude and statistical significance) are also observed in the African American group. For people who are politically conservative, they welcome the adoption of AI, but to a limited extent. 
+
+### Belief on the fixability of AI bias
+
+The study intends to manipulate people’s belief on the fixability of AI bias by telling them about a six-month of focused engineering fix. Their change in responses is measured by the repeated survey questions after the algorithm `fix` scenario. From both regression models we can see that algorithm fix is effective in persuading people of the positive algorithmic impact, increasing recommendation scale, and dispelling their negative concerns. However, the algorithm fix condition is futile to sway people’s final decision on whether to recommend adoption; its coefficient in the binary recommendation question is close to 0. 
+
+In Model 1, the joint information of counterfactual op-ed about fixability makes the business decision-makers think that fairness problems have less room to be fixed compared receiving no op-ed. In addition, the fatalism op-ed about algorithm fix brings about ambivalent persuasive impact on subject’s decision-making behavior. 
+
 ## Real world implications
+
+Based on the observed effects in AI adoption related response from subjects in the sequential business case studies, this paper confirms that persuasive arguments can have real impact on business decision-maker’s AI adoption decision through altering people’s belief on algorithmic fairness problem and its fixability. As for the reason behind their choice, the study finds that AI abandonment is correlated with fear of lawsuits and negative PR. 
+
+For the activists and policymakers looking to encourage AI adoption through activism campaigns, one of the most effective ways is to use the counterfactual arguments which emphasizing AI’s eminence in reducing human bias. To address the relatively less approving attitude among women, African American, and politically liberal managers, a pilot AI activism program can be held to educate them on the edge of AI algorithm to assure them of its promising landscape and controllable risks involved. 
+
 
 ## Internal validity & external validity of model
 
+### Internal validity
+
+The internal validity of the model can be justified by the procedures of sampling and RCT (randomized control trial) in experiment interventions, so that alternative explanations but the treatment can be eliminated from the cause of effect on the outcome.
+
+**Sampling**: Participant recruitment targeted adults with management experience nationwide in the U.S. Subjects were stratified sampled so that the randomization in sampling simulates real world demographic distributions.
+
+**Randomization in conditions, treatment & control, and business case order**: The randomization in assignment of status quo conditions mimics the real-life scenario where some people are shown the information, some choose to view it, while the rest do not have access. The intervention of receiving what kind of persuasive argument on AI fairness (counterfactual, fatalistic, or none) was randomized to avoid this viewpoint biasing their beliefs on algorithm fixability and thus the experiment outcome [@RCT]. The order of the sequential business cases were randomized to ensure that the variations on outcome does not come from the order of the case content but the experiment interventions.
+
+
+### External validity
+External validity of the conclusions on AI activism was supported by the comparison of outcome results across five dimensions relating AI adoption decisions [@externalv]. Thereby, the observed outcomes are applicable to all the perspectives in manager’s response, from thoughts on algorithm positivity, scale of recommendation, to damage size. The sampling frame covers a range of nationwide population, so that the study conclusion and subject trait summary can be extrapolated to the domestic level. The generalizability of the model findings can be enhanced by adding various new business topics in the case studies, such as topics on medical care and education to make the model discussion more inclusive. 
+
 ## Weakness and opportunities for future work
+
+### Weakness
+
+**Data imbalance within demographic subgroups**: Among 498 experiment subjects, white people account for 81% of the race groups, while the minority races (i.e. Asian, black, Hispanic) constitute only 5-10% of the sample total respectively. The decision-making behavior from the minority race groups have not been fully delineated due to a lack of data points in the regression model.    
+
+**Discussion on proxy variables for new technology acceptance**: For the working class, besides the demographic information collected by the study, age and industry can proxy people’s acceptance level on new technology. Years of working experience and seniority of employment can indicate people’s willingness to learn about new things, which plays a role in shaping people’s belief and decision-making. Managers from different industries might have difference tolerance level for algorithmic mistakes. New technology acceptance level should be taken into consideration when studying business decision-maker’s response on AI adoption. 
+
+**Bad variable choice for Instrumental Variable**: In the original paper, @citepaper use op-ed conditions, counterfactual and fatalism to serve as instrumental variables for the variable `status quo seen in the second case`. For a factor to a valid instrumental variable for an endogenous variable, it needs to have a causal effect on this endogenous variable, and it cannot directly influence the outcome variable. Since in the second business case, subjects are randomly assigned with the op-ed treatment before the status quo viewing condition, the viewpoints in the op-ed arguments can affect those who has the option to view the status quo or not, the first IV assumption is satisfied. 
+
+However, the latter, exclusion restriction [@citeiv], is not satisfied in this case. In fact, op-ed is the experiment treatment of interest that can directly influence subject responses through altering their belief on AI fixability; it is a confounder that impacts both the status quo seen variable and the outcome variable of adoption response.
+
 
 ## Differences and difficulties
 
+### Differences 
 
-\newpage
+**Supplementary multiple linear regression model**: Model 2 explores time t invariant demographic s heterogeneity and status quo conditions within the subject-level fixed effects from the replication model. It examines the components of fixed effects in detail by the dimensions of demographic traits and status quo conditions. 
+
+**Skip the replication of IV specifications**: @citepaper use the op-ed conditions as instrumental variables for `status quo seen second`. However, the variable op-ed does not satisfy the exclusion restriction which require op-ed to affect subject responses only through the channel of status quo seen in the second business case. In fact, op-ed is the experiment treatment of interest that can directly influence subject responses through altering belief on AI fixability. Therefore, I chose to not replicate the IV regression model on the use of counterfactual information.  
+
+### Difficulties
+
+**Exact replication of the STATA clustered error**: For the panel linear regression with individual-level fixed effect and clustered standard error, there seems to be no library or package in R that would output the exact same standard errors as STATA `areg` clustered error function. The `felm` linear model in the `lfe` library by R in can replicate fairly close clustered standard errors (slightly smaller by 0.005); it does not affect the statistical significance inference at 5% level. 
+
+**Create experiment flow chart from scratch**: Given the complex nature of the experiment procedures, ambiguous instructions on details and unclear wordings in some of the experiment descriptions, it took me multiple rounds of reading to figure out the experiment settings and several drafts before finalizing on the flow chart shown in appendix. 
+
+### Opportunities
+
+In term of experimental design, alternative sampling methods such as random sampling and oversampling can be used to obtain a more balanced dataset for different races to fix the data imbalance problem. Extra demographic information such as age and industry of work can be collected during survey to construct proxy variables for people’s acceptance level on new technology, which serve as additional regressors in the model.
+
+As for improvements in model design, the difference-in-difference technique can be used to model the panel data controlling for individual fixed effect and time fixed effect. Difference-in-difference compares the average change over time in the outcome variable in the treatment group with the control group. The DiD modeling is suitable for the study of “policy” effect [@citedid], in our case, the treatment of persuasive argument on AI activism.
+
 \appendix
-
 # Appendix
-
-```{r page1, echo=FALSE, fig.cap="Overall experiment flow", fig.align="center"}
+```{r page1, echo=FALSE, fig.cap="Overall experiment flow", fig.align="center", fig.width=8, fig.height=9}
 library(here)
 knitr::include_graphics(here::here("outputs/image/exp_flow_chart.png"))
 ```
 
+**Five survey questions in Study 1**
 
-\newpage
+* How positively do you consider the impact of AI technology? (1-7)
+* On a scale 1-7, how much do you recommend adopting AI technology?
+* Do you recommend adopting AI? (0/1)
+* On a scale 1-7, how likely are lawsuits or PR problems by AI algorithmic bias?
+* How large is the damage size of AI lawsuits or PR problems if they ever occur (1-7)? 
+
+# Regression Specifications
+
+## Model 1 Panel linear regression: `Counterfactual` and `Fatalism`
+
+$$ Y_{i,t,fix}=\beta[1(t=1)+1(fix=1)+Hiring+FE_i+CF_{i,t}+FAT_{i.t}+$$
+$$CF_{i,t}\times1(fix=1)+FAT_{i,t}\times1(fix=1)]+\epsilon$$
+where: 
+
+* $Y_{i,t,fix}$: the response to question $Y$ individual $i$ on case $t$ regarding the engineering effort to $fix$. Separate regressions are conducted for each of the five questios.
+* $i\leq498$: index for 498 subjects in Study 1
+* $t\in\{{1,2}\}$: order of the business case (first or second)
+* $fix\in0,1$: indicator variable of whether before ($fix$=0) or after ($fix=1$) the engineering effort to fix algorithm
+* $hiring$: indicator variable of whether being the hiring business case
+* $FE_i$: individual-level fixed effect
+* $CF$: dummy variable of whether reading the counterfactual op-ed condition in the second case
+* $FAT$: dummy variable of whether reading the fatalistic op-ed condition in the second case
+* No op-ed is the excluded condition
+
+## Model 2 Multiple linear regression: `Status Quo Conditions` and `Demographics`
+
+$$ Y_{i,t,fix}=\beta[1(t=1)+1(fix=1)+Hiring+SqShown_{i,t}+SqOpt_{i,t}+SqShown_{i,t}\times1(fix=1)+$$
+$$ SqOpt_{i,t}\times1(fix=1)+SqSeen_{i,t}\times1(t=1)+Female+Black+Asian+Hispanic+OtherEthn+$$
+$$PoliticConsrv+AIDecision+EducPrepared+KnowsML]+\epsilon$$
+where:
+
+* $SqShown$: dummy variable of whether the subject is shown with the status quo (yes:1, no: 0)
+* $SqOpt$: dummy variable of whether the subject is assigned to the optional status-quo-viewing conditon group
+* $SqSeen$: dummy variable of whether the subject have viewed the status quo (either being shown the status quo or opt to click on it)
+* $PoliticConsrv$: subject's political conservativeness level (standardized)
+* $AIDecision$: dummy for whether the subject make AI-related decisions on their jobs
+* $EduPrepared$: dummy variable for whether the subject feels educationally-prepared
+
+
+
 
 
 # References
