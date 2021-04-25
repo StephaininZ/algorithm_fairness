@@ -5,7 +5,7 @@ date: "23/04/2021"
 output:
  bookdown::pdf_document2:
  toc: no
-abstract: "This paper reproduces @citepaper to reinvestigate the managerial impact of algorithm fairness using a RCT field experiment under two business decision-making scenarios. This paper identifies demographic traits explaining the fundamental diversity in firm manager’s attitude towards AI and further examines the effect of interventions on AI adoption through activism arguments on algorithmic fairness. This paper finds that counterfactual advocacy arguments on algorithmic bias are more effective in promoting AI adoption for business use. Besides argument manipulations, race, gender, and knowledge on the status quo fundamentally impact manager’s judgement on AI adoption."
+abstract: "This paper reproduces @citepaper to reinvestigate the managerial impact of algorithm fairness using a RCT field experiment under two business decision-making scenarios. This paper identifies demographic traits explaining the fundamental diversity in firm manager’s attitude towards AI and further examines the effect of interventions on AI adoption through activism arguments on algorithmic fairness. This paper finds that counterfactual advocacy arguments on algorithmic bias are more effective in promoting AI adoption for business use. Besides argument manipulations, race, gender, and knowledge on the status quo fundamentally impact manager’s judgment on AI adoption."
   
 header-includes:
  - \usepackage{float}
@@ -32,18 +32,18 @@ library(ExPanDaR)   # panel data EDA
 library(lfe)  # multiple group fixed effect linear regression
 library(data.table)
 library(tibble)
-library(modelsummary)
+library(modelsummary)  # make regression summary table
 ```
 
 # Introduction
 
 Artificial Intelligence algorithmic bias in business decision-making inflicts ethical consequences which mostly materialize to company image damage and revenue loss. While AI technology has expedited the decision-making process in business operations, liberating manual efforts and replacing rule-based models in the age of big data for firms, concerns have been aroused on AI adoption by business decision-makers. 
 
-@citepaper examines the managerial effects of argument intervention through two Randomized Controlled Trial field experiment series in two business cases on hiring and lending decisions via investigations on effect originating from opinion polarity and from scientific veneer. In the first study, @citepaper randomly assigns subjects to one of three op-ed conditions (fatalistic, counterfactual or no op-ed) to assess participant’s adoption decisions and relationship of the argument to the status quo. In the second study, @citepaper measures the impact of adding scientific authority to arguments on AI ethics using a $2\times 2$ factor design.
+@citepaper examine the managerial effects of argument intervention through two Randomized Controlled Trial field experiment series in two business cases on hiring and lending decisions via investigations on effect originating from opinion polarity and from scientific veneer. In the first study, @citepaper randomly assigns subjects to one of three op-ed conditions (fatalistic, counterfactual or no op-ed) to assess participant’s adoption decisions and relationship of the argument to the status quo. In the second study, @citepaper measures the impact of adding scientific authority to arguments on AI ethics using a $2\times 2$ factor design.
 
-@citepaper finds that fatalism op-ed discourages AI adoption, while the counterfactual encourages it. As for the belief on the fixability of the algorithmic bias, participants tend to have more faith in correcting the fairness problems under fatalistic op-ed conditions. On the other hand, scientific veneer on arguments would reinforce the persuasive effect of the viewpoint on an approximately equal scale for either direction (positive or negative) and thus affect manager’s decision to adopt AI. 
+@citepaper find that fatalism op-ed discourages AI adoption, while the counterfactual encourages it. As for the belief on the fixability of the algorithmic bias, participants tend to have more faith in correcting the fairness problems under fatalistic op-ed conditions. On the other hand, scientific veneer on arguments would reinforce the persuasive effect of the viewpoint on an approximately equal scale for either direction (positive or negative) and thus affect manager’s decision to adopt AI. 
 
-Using the replication dataset and code provided by the original authors, I re-implement the first study to further the managerial impact of activism arguments through the working channel of opinion polarity in altering business decision-maker’s perception and adoption decision on AI. This paper identifies the heterogenous effects from individual demographic characteristics on their consistent choice set of attitudes towards AI adoption (excluding treatment effects) via a multiple linear regression. Subsequently, it analyses the marginal effect of exerting engineering effort on the belief of AI bias fixability through a panel OLS regression with individual fixed effects. 
+Using the replication dataset and code provided by the original authors, I re-implement the first study to further examine the managerial impact of activism arguments through the working channel of opinion polarity in altering business decision-maker’s perception and adoption decision on AI. This paper re-analyses the marginal effect of exerting engineering effort on the belief of AI bias fixability through a panel OLS regression with individual fixed effects. Subsequently, it identifies the heterogenous effects from individual demographic characteristics on their consistent choice set of attitudes towards AI adoption (excluding treatment effects) via a supplementary multiple linear regression model. 
 
 My findings about the managerial effects by argument polarity are consistent with @citepaper that arguments stressing the inevitability of algorithmic bias lead managers to abandon AI and op-eds claiming the superiority of AI models relative to human in producing lower bias would encourage AI adoption. In addition, the counterfactual op-ed precondition would sway manager’s belief in being able to improve AI bias after the engineering effort (fixability outcomes). For the ordinary linear regression inference about demographic traits and status quo condition, this paper discovers that algorithm models are significantly less favored by female, African Americans, and politically liberal managers compared to other genders, race and political affiliations throughout the study. 
 
@@ -194,7 +194,7 @@ The survey was conducted in January 2020, U.S. using the online participant recr
 There is no missing data in the dataset; respondents have answered every question encountered in the survey, i.e., non-response problem is non-existent in this study.   
 
 ## Experiment, methodology & intervention
-For Study 1, @citepaper designed two business cases on recruiting or financial lending where subjects need to complete sequentially, with the same set of five AI adoption-related questions ^[see [Appendix](#Appendix)] to answer in each scenario. Each case puts the subject in the role of a manager making an AI adoption decision. After reading the case and before answering questions, subjects are randomized to receive **status quo** information on AI algorithmic imbalance levels (status quo shown, optional view, none). After these five questions, subsequently, the subject is informed with a new condition, **algorithm engineering fix**,  ^[The subject is told to imagine the company has dedicated 6 months of additional engineering effort to fix AI bias at the end of the case.]. They are then asked to re-answer the five questions, incorporating beliefs about the algorithm fixability given the sequential scenario of a six-month engineering effort to correct AI bias. 
+For Study 1, @citepaper designed two business cases on recruiting or financial lending where subjects need to complete sequentially, with the same set of five AI adoption-related questions ^[see [Appendix](#Appendix)] to answer in each scenario. Each case puts the subject in the role of a manager making an AI adoption decision. After reading the case and before answering questions, subjects are randomized to receive **status quo** information on AI algorithmic imbalance levels (status quo shown, optional view, none). After these five questions, subsequently, the subject is informed with a new condition, **algorithm engineering fix**  ^[The subject is told to imagine the company has dedicated 6 months of additional engineering effort to fix AI bias at the end of the case.]. They are then asked to re-answer the five questions, incorporating beliefs about the algorithm fixability given the sequential scenario of a six-month engineering effort to correct AI bias. 
 
 The **op-ed** treatment is placed in the second business case; subjects will be randomized to read an additional op-ed after viewing the case before receiving a randomized status quo information. The op-ed is manipulated to be a persuasive argument about algorithmic fairness randomized to be **“counterfactual”** ^[A pro-AI view stressing the usefulness of AI once its bias is reduced below the level of "counterfactual" human decision-making], **“fatalistic”** ^[An anti-AI perspective claiming that bias of AI cannot be fully cleansed and thus should be avoided], or no op-ed. Details about experiment flow design is in [Appendix A](# Appendix).
 
@@ -247,7 +247,7 @@ To measure subject’s decision on AI adoption from the aspects of recommendatio
 * `Lawsuit`: how likely is the occurrence of lawsuits and PR problems
 * `Damage Size`: the damage size due to AI bias conditional on it ever happening
 
-Positive coefficients imply a positive effect on decision response for the first three dependent variable, and the opposite relationship holds for the last two Y variables.
+Positive coefficients imply a positive effect on decision response for the first three dependent variable, and the opposite holds for the last two Y variables.
 
 ## Panel linear regression with individual Fixed Effect & Clustered SE
 
@@ -273,7 +273,7 @@ The individual-level fixed effect in the first panel regression model absorbs th
 
 To study the effects generated by individual attributes and status quo conditions within the fixed effect, the factors of interest are included in this supplementary multiple linear regression as my second model. 
 
-To study within the individual subject heterogeneity, demographic information of gender, race, education, and political conservatism and AI- related experiences in work and knowledge are specified as regressors on subject’s response to the survey question. In addition to the treatment variable of `algorithm fix`, the randomized status quo conditions and their interaction terms with the treatment are included to serve as control variables.  
+To study inside the heterogeneity among individual subjects, demographic information of gender, race, education, and political conservatism and AI related experiences in work and knowledge are specified as regressors on subject’s response to the survey question. In addition to the treatment variable of `algorithm fix`, the randomized status quo conditions and their interaction terms with the treatment are included to serve as control variables.  
 
 To account for the subject heterogeneity and its resulting heteroskedasticity of regression errors, standard errors are clustered by subject `response id` for accurate standard errors. Accurate standard errors would in turn deliver unbiased p-values for regression coefficients which are a critical basis for statistical inference on the variable significance. 
 
@@ -330,9 +330,11 @@ fm_clu%>%
 
 ## Model 2: Effects of Demographics and Status Quo Conditions
 
-Consistent patterns can be observed for people in demographic subgroups under different status quo and algorithm fix conditions in Table \@ref(tab:olsclu). The linear regression model using demographics traits, status quo and algorithm fix as regressors can explain about 10% of the variations in subject’s response. 
+Consistent patterns can be observed for people in demographic subgroups under different status quo and algorithm fix conditions in Table \@ref(tab:olsclu). The linear regression model using demographics traits, status quo and algorithm fix as regressors can explain about 10% of the variations in subject’s response, excluding the experiment treatment. 
 
-Subjects who have viewed the status quo about AI fairness (either by being shown or choosing to click on the “view” option) assess the algorithm more favorably in their response to the five questions on a 5% significance level. Managers with AI work experience or someone who feel educationally-prepared for these decisions also hold an approving opinion. On the other hand, women, African Americans, and politically liberal managers tend to avoid this idea of AI adoption. 
+Subjects who have viewed the status quo about AI fairness (either by being shown or choosing to click on the “view” option) assess the algorithm more favorably in their response to the five questions on a 5% significance level. However, after the engineering effort, the knowledge on status quo would sway manager's belief in being able to improve AI bias and thus produce an adverse result on AI advocacy. 
+
+Managers with AI work experience or someone who feel educationally-prepared for these decisions also hold an approving opinion. On the other hand, women, African Americans, and politically liberal managers tend to avoid this idea of AI adoption. 
 
 In addition, significant evidence has been found that engineering effort to fix the algorithm can brighten up people’s belief on the algorithm bias fixability. A six-month focused engineering effort can effectively increase manager’s evaluation on algorithm positivity and recommendation scale by 0.47 and 0.45 standard deviations. It also eases their concern on lawsuits and damage size by 0.7 and 0.34 standard deviations respectively.
 
@@ -388,7 +390,7 @@ ms%>%
 
 The industries have benefitted from the development of Artificial Intelligence technology in liberating manual efforts, replacing rule-based models, and facilitating the decision-making process in business operations, meanwhile they also live under the fear of lawsuits and negative PR inflicted by algorithmic bias. The purpose of the research is to educate the business decision-maker of the future workhorse in the big data era and consequently to promote the business adoption in AI technology. 
 
-This paper replicates the first experiment of @citepaper to further study the managerial impact of AI fairness activism through the channel of its belief manipulation on impression on technology impact and manager’s perception on algorithm fairness fixability. The heterogeneity in adoption response by subject traits is examined with a multiple linear regression as a supplementary model to identify subgroup heterogeneity within the panel fixed effects. 
+This paper replicates the first experiment of @citepaper to further study the managerial impact of AI fairness activism through the channel of its belief manipulation on impression on technology impact and manager’s judgement on algorithm fairness fixability. The heterogeneity in adoption response by subject traits is examined with a multiple linear regression as a supplementary model to identify subgroup heterogeneity within the panel fixed effects. 
 
 
 ## Bias and ethical concerns 
@@ -425,20 +427,20 @@ As for the multiple OLS regression on subject’s response towards AI adoption, 
 
 The study intends to manipulate people’s belief on the fixability of AI bias by telling them about a six-month of focused engineering fix. Their change in responses is measured by the repeated survey questions after the algorithm `fix` scenario. From both regression models we can see that algorithm fix is effective in persuading people of the positive algorithmic impact, increasing recommendation scale, and dispelling their negative concerns. However, the algorithm fix condition is futile to sway people’s final decision on whether to recommend adoption; its coefficient in the binary recommendation question is close to 0. 
 
-In Model 1, the joint information of counterfactual op-ed about fixability makes the business decision-makers think that fairness problems have less room to be fixed compared receiving no op-ed. In addition, the fatalism op-ed about algorithm fix brings about ambivalent persuasive impact on subject’s decision-making behavior. 
+Interestingly, both the counterfactual op-ed precondition and the knowledge on status quo would sway manager’s belief in being able to improve AI bias after the engineering effort (fixability outcomes). The joint information of counterfactual op-ed about fixability makes the business decision-makers think that fairness problems have less room to be fixed compared receiving no op-ed. Same applies to the case of joint knowledge on AI status quo and engineering effort. In addition, the fatalism op-ed about algorithm fix brings about ambivalent persuasive impact on subject’s decision-making behavior. 
 
 ## Real world implications
 
-Based on the observed effects in AI adoption related response from subjects in the sequential business case studies, this paper confirms that persuasive arguments can have real impact on business decision-maker’s AI adoption decision through altering people’s belief on algorithmic fairness problem and its fixability. As for the reason behind their choice, the study finds that AI abandonment is correlated with fear of lawsuits and negative PR. 
+Based on the observed effects in AI judgment response from subjects in the sequential business case studies, this paper confirms that persuasive arguments can have real impact on business decision-maker’s AI adoption decision through altering people’s belief on algorithmic fairness and its fixability. As for the reason behind their choice, the study finds that AI abandonment is correlated with fear of lawsuits and negative PR. Artificial Intelligence technology has a promising prospect in accelerating business decision-making process by automating data-heavy insight mining and recommending optimal strategy given that its algorithmic fairness problem can be addressed in the future. AI has the potential to be one of the work horses in the ear of bis data if we allow some time for its technology refinement on fixing algorithmic bias. 
 
-For the activists and policymakers looking to encourage AI adoption through activism campaigns, one of the most effective ways is to use the counterfactual arguments which emphasizing AI’s eminence in reducing human bias. To address the relatively less approving attitude among women, African American, and politically liberal managers, a pilot AI activism program can be held to educate them on the edge of AI algorithm to assure them of its promising landscape and controllable risks involved. 
+For the activists and policymakers looking to promote AI adoption through activism campaigns, one of the most effective ways is to use the advocacy arguments which emphasizing AI’s eminence in reducing human bias. To address the relatively less approving attitude among women, African American, and politically liberal managers, a pilot AI activism program can be held to educate them on the edge of AI algorithm to assure them of its promising landscape and controllable risks involved. 
 
 
 ## Internal validity & external validity of model
 
 ### Internal validity
 
-The internal validity of the model can be justified by the procedures of sampling and RCT (randomized control trial) in experiment interventions, so that alternative explanations but the treatment can be eliminated from the cause of effect on the outcome.
+The internal validity of the model can be justified by the sampling procedures and RCT (randomized control trial) in experiment interventions, so that alternative explanations but the treatment can be eliminated from the cause of effect on the outcome.
 
 **Sampling**: Participant recruitment targeted adults with management experience nationwide in the U.S. Subjects were stratified sampled so that the randomization in sampling simulates real world demographic distributions.
 
@@ -465,24 +467,26 @@ However, the latter, exclusion restriction [@citeiv], is not satisfied in this c
 
 ### Differences 
 
-**Supplementary multiple linear regression model**: Model 2 explores time t invariant demographic s heterogeneity and status quo conditions within the subject-level fixed effects from the replication model. It examines the components of fixed effects in detail by the dimensions of demographic traits and status quo conditions. 
+**Supplementary multiple linear regression model**: Model 2 explores time $t$ invariant demographics heterogeneity and status quo conditions within the subject-level fixed effects from the replication model. It examines the components within the fixed effects in detail by the dimensions of demographic traits and status quo conditions. 
 
-**Skip the replication of IV specifications**: @citepaper use the op-ed conditions as instrumental variables for `status quo seen second`. However, the variable op-ed does not satisfy the exclusion restriction which require op-ed to affect subject responses only through the channel of status quo seen in the second business case. In fact, op-ed is the experiment treatment of interest that can directly influence subject responses through altering belief on AI fixability. Therefore, I chose to not replicate the IV regression model on the use of counterfactual information.  
+**Skip the replication of IV specifications**: @citepaper use the op-ed conditions as instrumental variables for `status quo seen second`. However, the variable op-ed does not satisfy the exclusion restriction which require op-ed to affect subject responses only through the channel of status quo seen in the second business case. In fact, op-ed is the experiment treatment of interest that can directly influence subject responses through altering belief on AI fixability. Therefore, I chose to not replicate the IV regression model.  
 
 ### Difficulties
 
 **Exact replication of the STATA clustered error**: For the panel linear regression with individual-level fixed effect and clustered standard error, there seems to be no library or package in R that would output the exact same standard errors as STATA `areg` clustered error function. The `felm` linear model in the `lfe` library by R in can replicate fairly close clustered standard errors (slightly smaller by 0.005); it does not affect the statistical significance inference at 5% level. 
 
-**Create experiment flow chart from scratch**: Given the complex nature of the experiment procedures, ambiguous instructions on details and unclear wordings in some of the experiment descriptions, it took me multiple rounds of reading to figure out the experiment settings and several drafts before finalizing on the flow chart shown in appendix. 
+**Create experiment flow chart from scratch**: Given the complex nature of the experiment procedures, ambiguous instructions on details and unclear wordings in some of the experiment descriptions, it took me multiple rounds of reading to figure out the experiment settings and several drafts before finalizing on the flow chart shown in appendix . 
 
 ### Opportunities
 
-In term of experimental design, alternative sampling methods such as random sampling and oversampling can be used to obtain a more balanced dataset for different races to fix the data imbalance problem. Extra demographic information such as age and industry of work can be collected during survey to construct proxy variables for people’s acceptance level on new technology, which serve as additional regressors in the model.
+In term of experimental design, alternative sampling methods such as random sampling and oversampling can be used to obtain a more balanced dataset for different race class to fix the data imbalance problem. Extra demographic information such as age and industry of work can be collected during survey to construct proxy variables for people’s acceptance level on new technology, which can serve as additional regressors in the model.
 
-As for improvements in model design, the difference-in-difference technique can be used to model the panel data controlling for individual fixed effect and time fixed effect. Difference-in-difference compares the average change over time in the outcome variable in the treatment group with the control group. The DiD modeling is suitable for the study of “policy” effect [@citedid], in our case, the treatment of persuasive argument on AI activism.
+As for improvements in model design, the Difference-in-Difference technique can be used to model the panel data controlling for individual fixed effect and time fixed effect. Difference-in-Difference compares the average change over time in the outcome variable in the treatment group with the control group. The DiD modeling is suitable for the study of “policy” effect [@citedid], in our case, the treatment of persuasive argument on AI activism.
+
 
 \appendix
-# Appendix
+
+# Appendix 
 ```{r page1, echo=FALSE, fig.cap="Overall experiment flow", fig.align="center", fig.width=8, fig.height=9}
 library(here)
 knitr::include_graphics(here::here("outputs/image/exp_flow_chart.png"))
