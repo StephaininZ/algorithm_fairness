@@ -13,4 +13,4 @@ The dependent variables of interest listed below are answers to five adoption-re
 # File Structure
 * scripts: the folder contains R code to import and clean raw data
 * inputs: the raw dataset and cleaned dataset are under the `data` subfolder
-* outputs: the `paper` subfolder contains the kintted pdf, R markdown, and bib reference for paper. The `literature` subfolder contains the original paper to replicate, written by Bo Cowgill, Fabrizio Dell’Acqua, and Sandra Matz.
+* outputs: the `paper` subfolder contains the kintted pdf, R markdown, and bib reference for paper. The `literature` subfolder contains the original paper to replicate, written by Bo Cowgill, Fabrizio Dell’Acqua, and Sandra Matz. The `image` subfolder contains the experimental flow chart and DAG for IV regression.
